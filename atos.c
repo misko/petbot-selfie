@@ -33,11 +33,13 @@ sem_t running;
 void * analyze() {
 
 
+   fprintf(stderr,"Loading network %s\n",networkFileName);
   void * networkHandle = jpcnn_create_network(networkFileName);
   if (networkHandle == NULL) {
     fprintf(stderr, "DeepBeliefSDK: Couldn't load network file '%s'\n", networkFileName);
     return;
   }
+   fprintf(stderr,"Loading predictor %s\n",predictorFileName);
 	  void * predictor = jpcnn_load_predictor(predictorFileName);
 	  if (predictor==NULL) {
 		fprintf(stderr,"Failed to load predictor\n");
@@ -191,8 +193,8 @@ int main(int argc, const char * argv[]) {
 				sem_wait(&stopped); //wait for other guy to stop
 				//when here other guy is stopped
 				fprintf(stdout,"STOPPED\n");	
-				return 0;
 			}
+			return 0;
 		}
 	}	
 
