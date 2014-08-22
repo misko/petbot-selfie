@@ -10,97 +10,176 @@
 #include <stdlib.h>
 #include <libjpcnn.h>
 #include <unistd.h>
+#include <semaphore.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <string.h>
 
-#define NETWORK_FILE_NAME "jetpac.ntwk"
+float* predictions;
+int predictionsLength;
+char** predictionsLabels;
+int predictionsLabelsLength;
+const char * networkFileName;
+int layer;
+const char * predictorFileName;
+const char * imageFileName;
+
+
+int release=0;
+sem_t stopped;
+sem_t running;
+
+void * analyze() {
+  void * networkHandle = jpcnn_create_network(networkFileName);
+  if (networkHandle == NULL) {
+    fprintf(stderr, "DeepBeliefSDK: Couldn't load network file '%s'\n", networkFileName);
+    return;
+  }
+
+  void * predictor = jpcnn_load_predictor(predictorFileName);
+  if (predictor==NULL) {
+	fprintf(stderr,"Failed to load predictor\n");
+	return;
+  }
+
+
+  while (1>0) {
+	  sem_wait(&running);
+	  while (1>0) {
+	
+		
+		if (release==1) {
+			break;
+		}	
+
+		fprintf(stderr, "taking picture\n");
+		//fswebcam here
+		unlink(imageFileName); //remove the file if it exists
+		int pid=fork();
+		if (pid==0) {
+			//child
+			//TODO make sure acquired image file
+			char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","10",
+				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",imageFileName, NULL };
+			int r = execv(args[0],args);
+			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		}
+		//master
+		wait(NULL);	
+
+
+		//next load image
+		if (release==1) {
+			break;
+		}	
+
+		  void * imageHandle = jpcnn_create_image_buffer_from_file(imageFileName);
+		  if (imageHandle == NULL) {
+		    fprintf(stderr, "DeepBeliefSDK: Couldn't load image file '%s'\n", imageFileName);
+		    continue;
+		  }
+		
+		//next classify
+		if (release==1) {
+			break;
+		}	
+
+
+		  jpcnn_classify_image(networkHandle, imageHandle, 0, layer, &predictions, &predictionsLength, &predictionsLabels, &predictionsLabelsLength);
+		
+		//next predict
+		if (release==1) {
+			break;
+		}	
+		  float pred = jpcnn_predict(predictor, predictions, predictionsLength);
+		  fprintf(stdout,"%f\n",pred);
+
+		//next send out the image if it passes
+		  if (pred>0.15 && release==0) {
+
+			char pred_s[1024];
+			sprintf(pred_s,"%0.4f", pred);
+			int pid=fork();
+			if (pid==0) {
+				//child
+				char * args[] = { "/bin/bash","./send_atos.sh",imageFileName, pred_s, NULL };
+				int r = execv(args[0],args);
+				fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+			}
+			//master
+			wait(NULL);	
+		  }
+		  jpcnn_destroy_image_buffer(imageHandle);
+	  }
+
+
+	  jpcnn_destroy_predictor(predictor);
+
+	  jpcnn_destroy_network(networkHandle);
+
+	  sem_post(&stopped);
+
+  }
+
+}
 
 int main(int argc, const char * argv[]) {
 
 
-  float* predictions;
-  int predictionsLength;
-  char** predictionsLabels;
-  int predictionsLabelsLength;
-  int index;
+  
+
 
   if (argc!=5) {
 	fprintf(stderr,"%s network_filename layer svm_filename img_filename\n",argv[0]);
 	exit(1);
   }
 
-  const char * networkFileName=argv[1];
-  int layer = atoi(argv[2]);
-  const char * predictorFileName=argv[3];
-  const char * imageFileName=argv[4];
+  networkFileName=argv[1];
+  layer = atoi(argv[2]);
+  predictorFileName=argv[3];
+  imageFileName=argv[4];
 
 
-  void * networkHandle = jpcnn_create_network(networkFileName);
-  if (networkHandle == NULL) {
-    fprintf(stderr, "DeepBeliefSDK: Couldn't load network file '%s'\n", networkFileName);
-    return 1;
-  }
+        sem_init(&stopped,0,0);
+        sem_init(&running,0,0);
 
-  void * predictor = jpcnn_load_predictor(predictorFileName);
-  if (predictor==NULL) {
-	fprintf(stderr,"Failed to load predictor\n");
-	return 1;
-  }
+        pthread_t analyze_thread;
+        int  iret1;
 
 
-  int i=0;
-  while (i>-1) {
-	fprintf(stderr, "taking picture\n");
-  	//fswebcam here
-	int pid=fork();
-	if (pid==0) {
-		//child
-		char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","10",
-			" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",imageFileName, NULL };
-		int r = execv(args[0],args);
-		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
-	}
-	//master
-	wait(NULL);	
+	release=1;
+
+        //start the tcp_client
+        iret1 = pthread_create( &analyze_thread, NULL, analyze, NULL);
+        if(iret1) {
+                fprintf(stderr,"Error - pthread_create() return code: %d\n",iret1);
+                exit(EXIT_FAILURE);
+        }
 
 
-	  void * imageHandle = jpcnn_create_image_buffer_from_file(imageFileName);
-	  if (imageHandle == NULL) {
-	    fprintf(stderr, "DeepBeliefSDK: Couldn't load image file '%s'\n", imageFileName);
-	    return 1;
-	  }
+	//monitor STDIN/ STDOUT
+	char buffer[1024];
+	while (1>0) {
+		fgets(buffer, 1024, stdin);
+		if (strcmp(buffer,"STOP")==0) {
+			if (release==1) {
+				//hmmmm	
+			} else {
+				release=1;
+				sem_wait(&stopped); //wait for other guy to stop
+				//when here other guy is stopped
+				fprintf(stdout,"STOPPED");	
+			}
+		} else if (strcmp(buffer,"GO")==0) {
+			if (release==0) {
 
-
-
-	  jpcnn_classify_image(networkHandle, imageHandle, 0, layer, &predictions, &predictionsLength, &predictionsLabels, &predictionsLabelsLength);
-	  float pred = jpcnn_predict(predictor, predictions, predictionsLength);
-	  fprintf(stdout,"%f\n",pred);
-	  if (pred>0.15) {
-
-		char pred_s[1024];
-		sprintf(pred_s,"%0.4f", pred);
-		int pid=fork();
-		if (pid==0) {
-			//child
-			char * args[] = { "/bin/bash","./send_atos.sh",imageFileName, pred_s, NULL };
-			int r = execv(args[0],args);
-			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+			} else {
+				release=0;	
+				sem_post(&running);
+			}	
 		}
-		//master
-		wait(NULL);	
-	  }
-	  jpcnn_destroy_image_buffer(imageHandle);
-	i++;
-  }
-
-  jpcnn_destroy_predictor(predictor);
-  /*for (index = 0; index < predictionsLength; index += 1) {
-    float predictionValue;
-    char* label = predictionsLabels[index];
-    predictionValue = predictions[index];
-    fprintf(stdout, "%d\t%f\t%s\n", index, predictionValue, label);
-  }*/
-  
-
-  jpcnn_destroy_network(networkHandle);
+	}	
 
   return 0;
 }
