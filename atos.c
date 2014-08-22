@@ -48,25 +48,25 @@ void * analyze() {
 
 	  while (1>0) {
 	
-		
-		if (release==1) {
-			break;
-		}	
-
-		fprintf(stderr, "taking picture\n");
 		//fswebcam here
 		unlink(imageFileName); //remove the file if it exists
-		int pid=fork();
-		if (pid==0) {
-			//child
-			//TODO make sure acquired image file
-			char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","10",
-				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",imageFileName, NULL };
-			int r = execv(args[0],args);
-			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		while ( access( imageFileName, F_OK ) == -1 ) {
+			if (release==1) {
+				break;
+			}	
+			fprintf(stderr, "taking picture\n");
+			int pid=fork();
+			if (pid==0) {
+				//child
+				//TODO make sure acquired image file
+				char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","10",
+					" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",imageFileName, NULL };
+				int r = execv(args[0],args);
+				fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+			}
+			//master
+			wait(NULL);	
 		}
-		//master
-		wait(NULL);	
 
 
 		//next load image
@@ -176,13 +176,23 @@ int main(int argc, const char * argv[]) {
 				fprintf(stdout,"STOPPED\n");	
 			}
 		} else if (strcmp(buffer,"GO")==0) {
-		fprintf(stderr, "GOT GO %s\n",buffer);
+			fprintf(stderr, "GOT GO %s\n",buffer);
 			if (release==0) {
 
 			} else {
 				release=0;	
 				sem_post(&running);
 			}	
+		} else if (strcmp(buffer,"EXIT")==0) {
+			if (release==1) {
+				//hmmmm	
+			} else {
+				release=1;
+				sem_wait(&stopped); //wait for other guy to stop
+				//when here other guy is stopped
+				fprintf(stdout,"STOPPED\n");	
+				return 0;
+			}
 		}
 	}	
 
