@@ -31,21 +31,21 @@ sem_t stopped;
 sem_t running;
 
 void * analyze() {
+
+
   void * networkHandle = jpcnn_create_network(networkFileName);
   if (networkHandle == NULL) {
     fprintf(stderr, "DeepBeliefSDK: Couldn't load network file '%s'\n", networkFileName);
     return;
   }
-
-  void * predictor = jpcnn_load_predictor(predictorFileName);
-  if (predictor==NULL) {
-	fprintf(stderr,"Failed to load predictor\n");
-	return;
-  }
-
-
+	  void * predictor = jpcnn_load_predictor(predictorFileName);
+	  if (predictor==NULL) {
+		fprintf(stderr,"Failed to load predictor\n");
+		return;
+	  }
   while (1>0) {
 	  sem_wait(&running);
+
 	  while (1>0) {
 	
 		
@@ -114,13 +114,13 @@ void * analyze() {
 	  }
 
 
-	  jpcnn_destroy_predictor(predictor);
 
-	  jpcnn_destroy_network(networkHandle);
 
 	  sem_post(&stopped);
 
   }
+	  jpcnn_destroy_predictor(predictor);
+	 jpcnn_destroy_network(networkHandle);
 
 }
 
@@ -162,6 +162,10 @@ int main(int argc, const char * argv[]) {
 	char buffer[1024];
 	while (1>0) {
 		fgets(buffer, 1024, stdin);
+		if (strlen(buffer)>0 ) {
+			buffer[strlen(buffer)-1]='\0';
+		}
+		fprintf(stderr, "GOT %s\n",buffer);
 		if (strcmp(buffer,"STOP")==0) {
 			if (release==1) {
 				//hmmmm	
@@ -169,9 +173,10 @@ int main(int argc, const char * argv[]) {
 				release=1;
 				sem_wait(&stopped); //wait for other guy to stop
 				//when here other guy is stopped
-				fprintf(stdout,"STOPPED");	
+				fprintf(stdout,"STOPPED\n");	
 			}
 		} else if (strcmp(buffer,"GO")==0) {
+		fprintf(stderr, "GOT GO %s\n",buffer);
 			if (release==0) {
 
 			} else {
