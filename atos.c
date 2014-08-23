@@ -69,6 +69,7 @@ float rmse_pictures(char * fn1,char * fn2) {
 	sscanf(buffer, "%f",&rmse);
 	//master
 	wait(NULL);	
+	close(pipefd[0]);
 	return rmse;
 }
 int take_picture(char * fn) {
