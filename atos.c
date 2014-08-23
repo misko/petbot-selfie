@@ -39,6 +39,45 @@ int exit_now=0;
 sem_t stopped;
 sem_t running;
 
+
+void unload_module(char * s) {
+        pid_t pid=fork();
+        if (pid==0) {
+                //child
+                char * args[] = { "/usr/bin/sudo","/sbin/rmmod", "-f", s, NULL };
+                int r = execv(args[0],args);
+                fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+        }
+        //master
+        waitpid(pid,NULL,0);
+}
+
+void load_module(char *s ) {
+        pid_t pid=fork();
+        if (pid==0) {
+                //child
+                char * args[] = { "/usr/bin/sudo", "/sbin/modprobe", s, NULL };
+                int r = execv(args[0],args);
+                fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+        }
+        //master
+        waitpid(pid,NULL, 0);
+}
+
+void reload_uvc() {
+        fprintf(stderr,"remogin\n");
+        unload_module("uvcvideo");
+        unload_module("videobuf2_core");
+        unload_module("videobuf2_vmalloc");
+        unload_module("videodev");
+        load_module("videodev");
+        load_module("videobuf2_core");
+        load_module("videobuf2_vmalloc");
+        load_module("uvcvideo");
+        fprintf(stderr,"Loaded UVC\n");
+        return;
+}
+
 float rmse_pictures(char * fn1,char * fn2) {
 	//fswebcam here
 	int pipefd[2];
@@ -48,7 +87,7 @@ float rmse_pictures(char * fn1,char * fn2) {
 	}
 
 
-	int pid=fork();
+	pid_t pid=fork();
 	if (pid==0) {
 		close(pipefd[0]);
 		//child
@@ -61,25 +100,32 @@ float rmse_pictures(char * fn1,char * fn2) {
 	//get the RMSE
 	char buffer[1024];
 	int r = read(pipefd[0], buffer, 1024);
+	float rmse=0.0;
 	if (r<=0) {
 		fprintf(stderr,"ERROR IN READING\n");
-		exit(1);
+	} else {
+		sscanf(buffer, "%f",&rmse);
 	}
-	float rmse;
-	sscanf(buffer, "%f",&rmse);
 	//master
-	wait(NULL);	
+	waitpid(pid,NULL,0);	
 	close(pipefd[0]);
 	return rmse;
 }
 int take_picture(char * fn) {
 	//fswebcam here
 	unlink(fn); //remove the file if it exists
+	int i=0;
 	while ( access( fn, F_OK ) == -1 ) {
+		if (i>0) {
+			sleep(1); //give it a little rest if we cant get picture
+			if (i%4==0) {
+				reload_uvc();			
+			}
+		} 
 		if (release==1) {
 			break;
 		}
-		int pid=fork();
+		pid_t pid=fork();
 		if (pid==0) {
 			//child
 			//TODO make sure acquired image file
@@ -89,7 +135,8 @@ int take_picture(char * fn) {
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
 		//master
-		wait(NULL);	
+		waitpid(pid,NULL,0);
+		i++;	
 	}
 	return 0;
 }
@@ -120,6 +167,7 @@ int check_for_dog(char * fn ) {
 	//next classify
 	if (release==1) {
 		return 0;
+		jpcnn_destroy_image_buffer(imageHandle);
 	}	
 
 	jpcnn_classify_image(networkHandle, imageHandle, 0, layer, &predictions, &predictionsLength, &predictionsLabels, &predictionsLabelsLength);
