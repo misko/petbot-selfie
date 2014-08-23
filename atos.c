@@ -19,7 +19,7 @@
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 1500
 
-#define RMSE_THRESHOLD	3000
+#define RMSE_THRESHOLD	2500
 
 float* predictions;
 int predictionsLength;
@@ -145,12 +145,10 @@ int check_for_dog(char * fn ) {
 		int pid=fork();
 		if (pid==0) {
 			//child
-			char * args[] = { "/bin/bash","./send_atos.sh",imageFileName, pred_s, NULL };
+			char * args[] = { "/bin/bash","./send_atos.sh",fn, pred_s, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
-		//master
-		wait(NULL);	
 		return 1;
 	}
 	return 0;
@@ -202,7 +200,7 @@ void * analyze() {
 			
 			//motion loop
 			int diff=0;
-			int motion=0;
+			int motion=3;
 			while (diff<2500) {
 				if (release==1) {
 					break;
