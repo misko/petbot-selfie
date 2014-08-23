@@ -75,11 +75,9 @@ int take_picture(char * fn) {
 	//fswebcam here
 	unlink(fn); //remove the file if it exists
 	while ( access( fn, F_OK ) == -1 ) {
-		/*if (release==1) {
+		if (release==1) {
 			break;
-		}*/
-		fprintf(stderr,"WARNING ABOVE!\n");	
-		fprintf(stderr, "taking picture\n");
+		}
 		int pid=fork();
 		if (pid==0) {
 			//child
@@ -184,9 +182,6 @@ void * analyze() {
 
 	//main loop
 	while (1>0) {
-		if (exit_now==1) {
-			break;
-		}
 		sem_wait(&running);
 		
 		
@@ -243,6 +238,9 @@ void * analyze() {
 				}
 			}
 		}
+		if (exit_now==1) {
+			break;
+		}
 	  	sem_post(&stopped);
 
   	}
@@ -251,6 +249,7 @@ void * analyze() {
 	jpcnn_destroy_predictor(predictor);
 	fprintf(stderr,"Cleaning up network...\n");
 	jpcnn_destroy_network(networkHandle);
+	sem_post(&stopped);
 
 }
 
