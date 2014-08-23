@@ -19,7 +19,7 @@
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 1500
 
-#define RMSE_THRESHOLD	2500
+#define RMSE_THRESHOLD	1800
 
 float* predictions;
 int predictionsLength;
@@ -188,7 +188,7 @@ int check_for_dog(char * fn ) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0.15) {
+	if (pred>0.11) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();
