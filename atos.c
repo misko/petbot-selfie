@@ -15,6 +15,9 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <string.h>
+       #include <sys/types.h>
+       #include <sys/stat.h>
+       #include <fcntl.h>
 
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 1500
@@ -128,6 +131,9 @@ int take_picture(char * fn) {
 		pid_t pid=fork();
 		if (pid==0) {
 			//child
+			int devNull = open("/dev/null", O_WRONLY);
+			dup2(devNull,2);
+			dup2(devNull,1);
 			//TODO make sure acquired image file
 			char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","5",
 				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",fn, NULL };
@@ -272,7 +278,7 @@ void * analyze() {
 			
 				//compare
 				float rmse = rmse_pictures(currentImageFileName,previousImageFileName);
-				fprintf(stderr,"RMSE is %f\n",rmse);
+				//fprintf(stderr,"RMSE is %f\n",rmse);
 
 				//check for motion
 				if (rmse>RMSE_THRESHOLD) {
