@@ -194,7 +194,7 @@ int check_for_dog(char * fn ) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0.11) {
+	if (pred>0.15) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();

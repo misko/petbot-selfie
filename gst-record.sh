@@ -30,7 +30,8 @@ rm -f $filename
 touch $filename
 retries=0
 while [ "`du -sm $filename | awk '{print $1}'`" -lt 1 ]; do
-	/usr/bin/gst-launch-1.0 -v v4l2src num-buffers=`expr 30 \* $3` ! video/x-raw, width=$x, height=$y, framerate=30/1 ! videorate !  video/x-raw,framerate=15/1 ! queue ! videoconvert ! gdkpixbufoverlay location=/home/pi/petselfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! avimux ! filesink location=$filename 2> /dev/null > /dev/null
+	#/usr/bin/gst-launch-1.0 -v v4l2src num-buffers=`expr 30 \* $3` ! video/x-raw, width=$x, height=$y, framerate=30/1 ! videorate !  video/x-raw,framerate=15/1 ! queue ! videoconvert ! gdkpixbufoverlay location=/home/pi/petselfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! avimux ! filesink location=$filename 2> /dev/null > /dev/null
+	/usr/bin/gst-launch-1.0 -v v4l2src num-buffers=`expr 30 \* $3` ! video/x-raw, width=$x, height=$y, framerate=30/1 ! videoconvert ! gdkpixbufoverlay location=/home/pi/petselfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! avimux ! filesink location=$filename 2> /dev/null > /dev/null
 	if [ "`du -sm $filename | awk '{print $1}'`" -gt 0 ]; then
 		echo Captured ok!
 		exit

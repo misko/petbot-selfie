@@ -1,9 +1,11 @@
 #!/bin/bash
 
 
-/bin/sh /home/pi/petbot/play_sound.sh "https://petbot.ca/static/sounds/mpu.mp3"
+/bin/sh /home/pi/petbot/play_sound.sh "https://petbot.ca/static/sounds/jsw.mp3"
+/home/pi/petselfie/gst-record.sh 320x240 500000 10 /dev/shm/petselfie.avi &
+sleep 0.5
 sudo /home/pi/petbot/single_cookie/single_cookie 10
-/home/pi/petselfie/gst-record.sh 320x240 500000 10 /dev/shm/petselfie.avi
+wait
 #/usr/bin/fswebcam -r 640x480 --skip 5 --no-underlay --no-info --no-banner --no-timestamp --quiet /dev/shm/petbot_selfie_after.jpg
 #/usr/bin/composite -gravity southeast -quality 100 tiny_logo.png /dev/shm/petbot_selfie_after.jpg /dev/shm/petbot_selfie_thanks.jpg
 #export EMAIL=selfie@petbot.ca
