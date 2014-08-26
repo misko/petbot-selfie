@@ -10,7 +10,7 @@ rm -f ${selfie_marked}
 
 
 /bin/sh /home/pi/petbot/play_sound.sh "https://petbot.ca/static/sounds/mpu.mp3"
-/home/pi/petbot-petselfie/gst-record.sh 320x240 500000 10 ${selfie_clip} &
+/home/pi/petbot-selfie/gst-record.sh 320x240 500000 10 ${selfie_clip} &
 sleep 0.5 
 sudo /home/pi/petbot/single_cookie/single_cookie 10
 wait
