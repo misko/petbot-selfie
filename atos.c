@@ -22,7 +22,7 @@
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 1500
 
-#define RMSE_THRESHOLD	1800
+#define RMSE_THRESHOLD	1 //1800
 
 float* predictions;
 int predictionsLength;
@@ -114,7 +114,7 @@ float rmse_pictures(char * fn1,char * fn2) {
 	close(pipefd[0]);
 	return rmse;
 }
-int take_picture(char * fn) {
+int take_picture(char * fn, char * fn_small) {
 	//fswebcam here
 	unlink(fn); //remove the file if it exists
 	int i=0;
@@ -136,7 +136,7 @@ int take_picture(char * fn) {
 			dup2(devNull,1);
 			//TODO make sure acquired image file
 			char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","5",
-				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",fn, NULL };
+				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",fn, "--scale", "320x240" ,fn_small, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
@@ -144,6 +144,40 @@ int take_picture(char * fn) {
 		waitpid(pid,NULL,0);
 		i++;	
 	}
+	return 0;
+}
+
+int blur_picture(char * fn, char * fnout) {
+	//fswebcam here
+	unlink(fnout); //remove the file if it exists
+	int i=0;
+	while ( access( fnout, F_OK ) == -1 ) {
+		if (release==1) {
+			break;
+		}
+		pid_t pid=fork();
+		if (pid==0) {
+			//child
+			int devNull = open("/dev/null", O_WRONLY);
+			dup2(devNull,2);
+			dup2(devNull,1);
+			//TODO make sure acquired image file
+			//char * args[] = { "/usr/bin/convert",fn,"-despeckle", "-gravity", "Center", "-crop", "80%", fnout, NULL };
+			char * args[] = { "/usr/bin/convert",fn,"-despeckle", fnout, NULL };
+			int r = execv(args[0],args);
+			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		}
+		//master
+		waitpid(pid,NULL,0);
+		i++;	
+	}
+	return 0;
+}
+
+int blur_picture_inplace(char *fn) {
+	char * temp_file="/dev/shm/temp.jpg";
+	blur_picture(fn,temp_file);
+	rename(temp_file,fn);
 	return 0;
 }
 
@@ -186,21 +220,21 @@ void busy_wait(int s) {
 
 
 
-int check_for_dog(char * fn ) {
+int check_for_dog(char * fn , char * fndown) {
 	if (release==1) {
 		return 0;
 	}	
 	//downsample the image
-	char fndown[1024];
-	sprintf(fndown,"%s_down.png",fn);
-	downsample_picture(fn,fndown);
+	//char fndown[1024];
+	//sprintf(fndown,"%s_down.jpg",fn);
+	//downsample_picture(fn,fndown);
 
-	if (release==1) {
-		return 0;
-	}	
+	//if (release==1) {
+	//	return 0;
+	//}	
 
 	void * imageHandle = jpcnn_create_image_buffer_from_file(fndown);
-	unlink(fndown); //remove the file if it exists
+	//unlink(fndown); //remove the file if it exists TODO
 	if (imageHandle == NULL) {
 		fprintf(stderr, "DeepBeliefSDK: Couldn't load image file '%s'\n", fn);
 		return 0;
@@ -231,7 +265,7 @@ int check_for_dog(char * fn ) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0.20) {
+	if (pred>0.14) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();
@@ -252,9 +286,13 @@ int check_for_dog(char * fn ) {
 
 void * analyze() {
 	char currentImageFileName[1024];
+	char currentImageFileNameSmall[1024];
 	char previousImageFileName[1024];
+	char previousImageFileNameSmall[1024];
 	sprintf(currentImageFileName,"%s_current.jpg",imageFileName);
+	sprintf(currentImageFileNameSmall,"%s_current_small.jpg",imageFileName);
 	sprintf(previousImageFileName,"%s_previous.jpg",imageFileName);
+	sprintf(previousImageFileNameSmall,"%s_previous_small.jpg",imageFileName);
 
 
 	fprintf(stderr,"Loading network %s\n",networkFileName);
@@ -283,7 +321,10 @@ void * analyze() {
 			}
 	
 			//first picture
-			take_picture(currentImageFileName);
+			take_picture(currentImageFileName,currentImageFileNameSmall);
+			//blur_picture_inplace(currentImageFileNameSmall);
+			blur_picture_inplace(currentImageFileName);
+
 
 			busy_wait(WAIT_TIME);
 			if (release==1) {
@@ -299,9 +340,12 @@ void * analyze() {
 				}	
 				//move current to previous
 				rename(currentImageFileName,previousImageFileName);
+				rename(currentImageFileNameSmall,previousImageFileNameSmall);
 		
 				//get current picture
-				take_picture(currentImageFileName);
+				take_picture(currentImageFileName,currentImageFileNameSmall);
+				//blur_picture_inplace(currentImageFileNameSmall);
+				blur_picture_inplace(currentImageFileName);
 				//if no motion the wait a bit
 				if (motion<=0) {
 					busy_wait(WAIT_TIME);
@@ -314,14 +358,15 @@ void * analyze() {
 				}
 			
 				//compare
-				float rmse = rmse_pictures(currentImageFileName,previousImageFileName);
+				float rmse = rmse_pictures(currentImageFileNameSmall,previousImageFileNameSmall);
 				//fprintf(stderr,"RMSE is %f\n",rmse);
 
 				//check for motion
 				if (rmse>RMSE_THRESHOLD) {
 					fprintf(stderr,"passed threshold moving on to detector...\n");;
 					motion=10;
-					int check = check_for_dog(currentImageFileName);	
+					//int check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
+					int check = check_for_dog(currentImageFileName,currentImageFileName);	
 					if (check==1) {
 						busy_wait(LONG_WAIT_TIME);
 					}
