@@ -44,6 +44,9 @@ int main(int argc, const char * argv[]) {
 	return 1;
   }
 
+
+  int i=0;
+  for (i=0; i<15; i++) {
   void * imageHandle = jpcnn_create_image_buffer_from_file(imageFileName);
   if (imageHandle == NULL) {
     fprintf(stderr, "DeepBeliefSDK: Couldn't load image file '%s'\n", imageFileName);
@@ -55,8 +58,9 @@ int main(int argc, const char * argv[]) {
   jpcnn_classify_image(networkHandle, imageHandle, 0, layer, &predictions, &predictionsLength, &predictionsLabels, &predictionsLabelsLength);
   float pred = jpcnn_predict(predictor, predictions, predictionsLength);
   fprintf(stdout,"%f\n",pred);
-  jpcnn_destroy_predictor(predictor);
   jpcnn_destroy_image_buffer(imageHandle);
+  }
+  jpcnn_destroy_predictor(predictor);
 
   /*for (index = 0; index < predictionsLength; index += 1) {
     float predictionValue;

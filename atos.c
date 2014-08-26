@@ -147,6 +147,32 @@ int take_picture(char * fn) {
 	return 0;
 }
 
+int downsample_picture(char * fn, char * fndown) {
+	//fswebcam here
+	unlink(fndown); //remove the file if it exists
+	int i=0;
+	while ( access( fndown, F_OK ) == -1 ) {
+		if (release==1) {
+			break;
+		}
+		pid_t pid=fork();
+		if (pid==0) {
+			//child
+			int devNull = open("/dev/null", O_WRONLY);
+			dup2(devNull,2);
+			dup2(devNull,1);
+			//TODO make sure acquired image file
+			char * args[] = { "/usr/bin/convert",fn,"-resize","50%", fndown, NULL };
+			int r = execv(args[0],args);
+			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		}
+		//master
+		waitpid(pid,NULL,0);
+		i++;	
+	}
+	return 0;
+}
+
 
 void busy_wait(int s) {
 	while (s>0) {
@@ -164,7 +190,17 @@ int check_for_dog(char * fn ) {
 	if (release==1) {
 		return 0;
 	}	
-	void * imageHandle = jpcnn_create_image_buffer_from_file(fn);
+	//downsample the image
+	char fndown[1024];
+	sprintf(fndown,"%s_down.png",fn);
+	downsample_picture(fn,fndown);
+
+	if (release==1) {
+		return 0;
+	}	
+
+	void * imageHandle = jpcnn_create_image_buffer_from_file(fndown);
+	unlink(fndown); //remove the file if it exists
 	if (imageHandle == NULL) {
 		fprintf(stderr, "DeepBeliefSDK: Couldn't load image file '%s'\n", fn);
 		return 0;
@@ -174,7 +210,8 @@ int check_for_dog(char * fn ) {
 	if (release==1) {
 		return 0;
 		jpcnn_destroy_image_buffer(imageHandle);
-	}	
+	}
+	
 
 	jpcnn_classify_image(networkHandle, imageHandle, 0, layer, &predictions, &predictionsLength, &predictionsLabels, &predictionsLabelsLength);
 	jpcnn_destroy_image_buffer(imageHandle);
@@ -194,13 +231,13 @@ int check_for_dog(char * fn ) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0.15) {
+	if (pred>0) {//0.15) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();
 		if (pid==0) {
 			//child
-			char * args[] = { "/bin/bash","./send_atos.sh",fn, pred_s, NULL };
+			char * args[] = { "/bin/bash","/home/pi/petselfie/send_atos.sh",fn, pred_s, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
