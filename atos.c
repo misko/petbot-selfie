@@ -231,13 +231,13 @@ int check_for_dog(char * fn ) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0) {//0.15) {
+	if (pred>0.20) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();
 		if (pid==0) {
 			//child
-			char * args[] = { "/bin/bash","/home/pi/petbot-petselfie/send_atos.sh",fn, pred_s, NULL };
+			char * args[] = { "/bin/bash","/home/pi/petbot-selfie/send_atos.sh",fn, pred_s, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}

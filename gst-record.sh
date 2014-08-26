@@ -30,7 +30,7 @@ rm -f $filename
 touch $filename
 retries=0
 while [ "`du -sm $filename | awk '{print $1}'`" -lt 1 ]; do
-	/usr/bin/gst-launch-1.0 v4l2src do-timestamp=true num-buffers=`expr 30 \* $3` ! videorate ! video/x-raw, width=$x, height=$y, framerate=30/1 ! gdkpixbufoverlay location=/home/pi/petbot-selfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! h264parse ! qtmux dts-method=asc presentation-time=1 ! filesink location=$filename
+	/usr/bin/gst-launch-1.0 v4l2src do-timestamp=true num-buffers=`expr 30 \* $3` io-mode=1 ! queue ! videorate ! video/x-raw, width=$x, height=$y, framerate=30/1 ! gdkpixbufoverlay location=/home/pi/petbot-selfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! h264parse ! qtmux dts-method=asc presentation-time=1 ! filesink location=$filename
 	#echo /usr/bin/gst-launch-1.0 v4l2src do-timestamp=true num-buffers=`expr 30 \* $3` ! video/x-raw, width=$x, height=$y, framerate=30/1 ! queue !  videorate ! video/x-raw, width=640, height=480, framerate=30/1 ! gdkpixbufoverlay location=/home/pi/petbot-selfie/petbot_video_watermark.png offset-x=180 offset-y=180 ! omxh264enc target-bitrate=$bitrate control-rate=variable ! h264parse ! qtmux dts-method=asc presentation-time=1 ! filesink location=$filename # 2> /dev/null > /dev/null
 	#exit
 	#exit
