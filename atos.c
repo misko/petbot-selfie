@@ -237,7 +237,7 @@ int check_for_dog(char * fn ) {
 		int pid=fork();
 		if (pid==0) {
 			//child
-			char * args[] = { "/bin/bash","/home/pi/petselfie/send_atos.sh",fn, pred_s, NULL };
+			char * args[] = { "/bin/bash","/home/pi/petbot-petselfie/send_atos.sh",fn, pred_s, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
