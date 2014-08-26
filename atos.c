@@ -22,7 +22,7 @@
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 1500
 
-#define RMSE_THRESHOLD	1 //1800
+#define RMSE_THRESHOLD	1800
 
 float* predictions;
 int predictionsLength;
