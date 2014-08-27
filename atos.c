@@ -20,7 +20,7 @@
        #include <fcntl.h>
 
 #define WAIT_TIME 2
-#define LONG_WAIT_TIME 1500
+#define LONG_WAIT_TIME 200 //1500
 
 #define RMSE_THRESHOLD	1800
 
@@ -265,7 +265,7 @@ int check_for_dog(char * fn , char * fndown) {
 	}	
 
 	//next send out the image if it passes
-	if (pred>0.025) {
+	if (pred>0.18) {
 		char pred_s[1024];
 		sprintf(pred_s,"%0.4f", pred);
 		int pid=fork();
@@ -323,7 +323,7 @@ void * analyze() {
 			//first picture
 			take_picture(currentImageFileName,currentImageFileNameSmall);
 			//blur_picture_inplace(currentImageFileNameSmall);
-			blur_picture_inplace(currentImageFileName);
+			//blur_picture_inplace(currentImageFileName);
 
 
 			busy_wait(WAIT_TIME);
@@ -345,7 +345,7 @@ void * analyze() {
 				//get current picture
 				take_picture(currentImageFileName,currentImageFileNameSmall);
 				//blur_picture_inplace(currentImageFileNameSmall);
-				blur_picture_inplace(currentImageFileName);
+				//blur_picture_inplace(currentImageFileName);
 				//if no motion the wait a bit
 				if (motion<=0) {
 					busy_wait(WAIT_TIME);
@@ -366,7 +366,7 @@ void * analyze() {
 					fprintf(stderr,"passed threshold moving on to detector...\n");;
 					motion=10;
 					//int check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
-					int check = check_for_dog(currentImageFileName,currentImageFileName);	
+					int check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
 					if (check==1) {
 						busy_wait(LONG_WAIT_TIME);
 					}
