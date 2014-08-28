@@ -147,6 +147,33 @@ int take_picture(char * fn, char * fn_small) {
 	return 0;
 }
 
+int crop_picture(char * fn, char * fnout) {
+	//fswebcam here
+	unlink(fnout); //remove the file if it exists
+	int i=0;
+	while ( access( fnout, F_OK ) == -1 ) {
+		if (release==1) {
+			break;
+		}
+		pid_t pid=fork();
+		if (pid==0) {
+			//child
+			int devNull = open("/dev/null", O_WRONLY);
+			dup2(devNull,2);
+			dup2(devNull,1);
+			//TODO make sure acquired image file
+			//char * args[] = { "/usr/bin/convert",fn,"-despeckle", "-gravity", "Center", "-crop", "80%", fnout, NULL };
+			char * args[] = { "/usr/bin/convert",fn,"-gravity", "Center", "-crop", "80%", fnout, NULL };
+			int r = execv(args[0],args);
+			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+		}
+		//master
+		waitpid(pid,NULL,0);
+		i++;	
+	}
+	return 0;
+}
+
 int blur_picture(char * fn, char * fnout) {
 	//fswebcam here
 	unlink(fnout); //remove the file if it exists
@@ -308,6 +335,9 @@ void * analyze() {
 		return;
 	}
 
+	int i=0;
+
+
 	//main loop
 	while (1>0) {
 		sem_wait(&running);
@@ -335,6 +365,7 @@ void * analyze() {
 			int diff=0;
 			int motion=3;
 			while (diff<2500) {
+				i++;
 				if (release==1) {
 					break;
 				}	
@@ -366,7 +397,16 @@ void * analyze() {
 					fprintf(stderr,"passed threshold moving on to detector...\n");;
 					motion=10;
 					//int check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
-					int check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
+					int check=0;
+					if (i%2==0) {
+						check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
+					} else {
+						char cropped_filename[1024];
+						sprintf("%s_cropped.png",cropped_filename);
+						crop_picture(currentImageFileNameSmall,cropped_filename);
+						check = check_for_dog(currentImageFileName,cropped_filename);	
+						unlink(cropped_filename);
+					}
 					if (check==1) {
 						busy_wait(LONG_WAIT_TIME);
 					}
