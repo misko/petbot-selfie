@@ -24,7 +24,7 @@
 #define LONG_WAIT_TIME 200 //1500
 
 #define MIN_DARK_LEVEL 12000
-#define WAIT_TIME_DARK 600
+#define WAIT_TIME_DARK 4
 
 #define RMSE_THRESHOLD	1800
 
@@ -426,12 +426,15 @@ void * analyze() {
 				float darkness = dark_level(currentImageFileNameSmall);
 			//	fprintf(stderr,"DARK %f\n", darkness);
 				if (darkness<MIN_DARK_LEVEL) {	
-					time_t rawtime;
-					struct tm * timeinfo;
+					if (i%100==0) {
+						time_t rawtime;
+						struct tm * timeinfo;
 
-					time ( &rawtime );
-					timeinfo = localtime ( &rawtime );
-					fprintf(stdout, "Its dark.... %s \n", asctime (timeinfo));
+						time ( &rawtime );
+						timeinfo = localtime ( &rawtime );	
+
+						fprintf(stdout, "Its dark.... %s \n", asctime (timeinfo));
+					}
 					busy_wait(WAIT_TIME_DARK);
 					continue;
 				}
