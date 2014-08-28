@@ -402,7 +402,7 @@ void * analyze() {
 						check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
 					} else {
 						char cropped_filename[1024];
-						sprintf("%s_cropped.png",cropped_filename);
+						sprintf("%s_cropped.jpg",cropped_filename);
 						crop_picture(currentImageFileNameSmall,cropped_filename);
 						check = check_for_dog(currentImageFileName,cropped_filename);	
 						unlink(cropped_filename);
