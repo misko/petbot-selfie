@@ -424,7 +424,7 @@ void * analyze() {
 
 				//check darkness level
 				float darkness = dark_level(currentImageFileNameSmall);
-				fprintf(stderr,"DARK %f\n", darkness);
+			//	fprintf(stderr,"DARK %f\n", darkness);
 				if (darkness<MIN_DARK_LEVEL) {	
 					time_t rawtime;
 					struct tm * timeinfo;
