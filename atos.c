@@ -18,9 +18,13 @@
        #include <sys/types.h>
        #include <sys/stat.h>
        #include <fcntl.h>
+#include <time.h>
 
 #define WAIT_TIME 2
 #define LONG_WAIT_TIME 200 //1500
+
+#define MAX_DARK_LEVEL 12000
+#define WAIT_TIME_DARK 600
 
 #define RMSE_THRESHOLD	1800
 
@@ -81,6 +85,41 @@ void reload_uvc() {
         return;
 }
 
+float dark_level(char * fn) {
+	//fswebcam here
+	int pipefd[2];
+	if (pipe(pipefd)==-1) {
+		fprintf(stderr,"ERROR IN PIPE CREATE\n");
+		exit(1);
+	}
+
+
+	pid_t pid=fork();
+	if (pid==0) {
+		close(pipefd[0]);
+		//child
+		dup2(pipefd[1],1);
+		char * args[] = { "/usr/bin/convert" , fn, "-format" , "\%[mean]" , "info:", NULL};
+		int r = execv(args[0],args);
+		fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
+	}
+	close(pipefd[1]);
+	//get the RMSE
+	char buffer[1024];
+	int r = read(pipefd[0], buffer, 1024);
+	buffer[r]='\0';
+	float darkness=0.0;
+	if (r<=0) {
+		fprintf(stderr,"ERROR IN READING\n");
+	} else {
+		sscanf(buffer, "%f",&darkness);
+	}
+	//master
+	waitpid(pid,NULL,0);	
+	close(pipefd[0]);
+	return darkness;
+}
+
 float rmse_pictures(char * fn1,char * fn2) {
 	//fswebcam here
 	int pipefd[2];
@@ -103,6 +142,7 @@ float rmse_pictures(char * fn1,char * fn2) {
 	//get the RMSE
 	char buffer[1024];
 	int r = read(pipefd[0], buffer, 1024);
+	buffer[r]='\0';
 	float rmse=0.0;
 	if (r<=0) {
 		fprintf(stderr,"ERROR IN READING\n");
@@ -114,6 +154,9 @@ float rmse_pictures(char * fn1,char * fn2) {
 	close(pipefd[0]);
 	return rmse;
 }
+
+
+
 int take_picture(char * fn, char * fn_small) {
 	//fswebcam here
 	unlink(fn); //remove the file if it exists
@@ -146,6 +189,9 @@ int take_picture(char * fn, char * fn_small) {
 	}
 	return 0;
 }
+
+
+
 
 int crop_picture(char * fn, char * fnout) {
 	//fswebcam here
@@ -375,6 +421,21 @@ void * analyze() {
 		
 				//get current picture
 				take_picture(currentImageFileName,currentImageFileNameSmall);
+
+				//check darkness level
+				float darkness = dark_level(currentImageFileNameSmall);
+				if (darkness>MAX_DARK_LEVEL) {	
+					time_t rawtime;
+					struct tm * timeinfo;
+
+					time ( &rawtime );
+					timeinfo = localtime ( &rawtime );
+					fprintf(stdout, "Its dark.... %s \n", asctime (timeinfo));
+					busy_wait(WAIT_TIME_DARK);
+					continue;
+				}
+	
+					
 				//blur_picture_inplace(currentImageFileNameSmall);
 				//blur_picture_inplace(currentImageFileName);
 				//if no motion the wait a bit
