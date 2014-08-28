@@ -136,7 +136,7 @@ int take_picture(char * fn, char * fn_small) {
 			dup2(devNull,1);
 			//TODO make sure acquired image file
 			char * args[] = { "/usr/bin/fswebcam","-r","640x480","--skip","5",
-				" --no-underlay","--no-info","--no-banner","--no-timestamp","--quiet",fn, "--scale", "320x240" ,fn_small, NULL };
+				"--no-info","--no-banner","--no-timestamp","--quiet",fn, "--scale", "320x240" ,fn_small, NULL };
 			int r = execv(args[0],args);
 			fprintf(stderr,"SHOULD NEVER REACH HERE %d\n",r);
 		}
@@ -402,7 +402,7 @@ void * analyze() {
 						check = check_for_dog(currentImageFileName,currentImageFileNameSmall);	
 					} else {
 						char cropped_filename[1024];
-						sprintf("%s_cropped.jpg",cropped_filename);
+						sprintf(cropped_filename,"%s_cropped.jpg",currentImageFileNameSmall);
 						crop_picture(currentImageFileNameSmall,cropped_filename);
 						check = check_for_dog(currentImageFileName,cropped_filename);	
 						unlink(cropped_filename);
