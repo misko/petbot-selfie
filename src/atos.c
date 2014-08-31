@@ -372,13 +372,13 @@ void * analyze() {
 	networkHandle = jpcnn_create_network(networkFileName);
 	if (networkHandle == NULL) {
 		fprintf(stderr, "DeepBeliefSDK: Couldn't load network file '%s'\n", networkFileName);
-		return;
+		return NULL;
 	}
 	fprintf(stderr,"Loading predictor %s\n",predictorFileName);
 	predictor = jpcnn_load_predictor(predictorFileName);
 	if (predictor==NULL) {
 		fprintf(stderr,"Failed to load predictor\n");
-		return;
+		return NULL;
 	}
 
 	int i=0;
@@ -491,6 +491,7 @@ void * analyze() {
 	jpcnn_destroy_network(networkHandle);
 	sem_post(&stopped);
 
+	return NULL;
 }
 
 int main(int argc, const char * argv[]) {

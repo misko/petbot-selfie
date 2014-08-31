@@ -57,7 +57,6 @@ int main(int argc, const char * argv[]) {
   int predictionsLength;
   char** predictionsLabels;
   int predictionsLabelsLength;
-  int index;
 
 
   if (argc != 5) {

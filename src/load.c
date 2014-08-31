@@ -19,7 +19,6 @@ int main(int argc, const char * argv[]) {
   int predictionsLength;
   char** predictionsLabels;
   int predictionsLabelsLength;
-  int index;
 
   if (argc!=5) {
 	fprintf(stderr,"%s network_filename layer svm_filename img_filename\n",argv[0]);
