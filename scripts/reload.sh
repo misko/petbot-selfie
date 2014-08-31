@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#this is tricky but needed..... 
 
 unload_modules="uvcvideo videobuf2_core videobuf2_vmalloc videodev"
 load_modules="videodev videobuf2_core videobuf2_vmalloc uvcvideo"
