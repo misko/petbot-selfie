@@ -13,5 +13,9 @@ Included in this repository is:
 * **model/** - Contains the current petbot-selfie SVM model
 * **scripts/** - Scripts to capture video and send an email
 
+Run by using:
+
+```sudo ./atos ccv2012.ntwk -2 model_2012_l2_p5p50_n4 /dev/shm/out```
+
 ## License
 All content here is licensed under  GNU General Public License v3.0
